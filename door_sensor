@@ -4,21 +4,31 @@ http://www.instructables.com/id/Magnetic-Door-Sensor-and-Arduino/?ALLSTEPS
 
 */
 
-const int switchPin = 2;
+const int switchPin = 5;
 const int ledPin = 13;
+int directionstate = 0;
 
 void setup() {
 pinMode(switchPin, INPUT);
 pinMode(ledPin, OUTPUT);
 digitalWrite(switchPin, HIGH);
+Serial.begin(9600);
 }
 
 void loop() {
-if(digitalRead(switchPin) == LOW){
-  digitalWrite(ledPin, LOW);
-  }
-
-else{
+if(digitalRead(switchPin) == HIGH & directionstate == 0) {
   digitalWrite(ledPin, HIGH);
+  Serial.print("start");
+  delay(5000);
+  directionstate = 1;
+  Serial.print(directionstate);
   }
+if (digitalRead(switchPin) == HIGH & directionstate == 1){
+  Serial.print("here");
+  Serial.print(directionstate);
+  digitalWrite(ledPin, LOW);
+  delay(5000);
+  directionstate = 0;
+ }
 }
+

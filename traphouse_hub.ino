@@ -8,9 +8,14 @@
 */
 
 #include <Servo.h>
-#include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
 #include <SmartCityNodeLib.h>
+#include "Adafruit_LiquidCrystal.h"
+#include "Wire.h"
+
+Adafruit_LiquidCrystal lcd(0);
+
+long runTime;
 
 // some constants to identify my node to the library object
 const String myNodeName = "1017 Trap House";
@@ -55,6 +60,9 @@ void setup() {
   digitalWrite(magneticSwitchPin, HIGH);
 //  digitalWrite(switchPin, HIGH);
 
+  lcd.begin(16, 2);
+  lcd.print("hello, world!");
+
   Serial.println("\n\n*** Starting SmartCityNode demo");
 
   // you want to blink that LED, right?
@@ -83,26 +91,43 @@ void setup() {
 
 
 void loop() {
+  runTime = millis();
+  lcd.setCursor(0, 1);
+  lcd.print(millis()/1000);
+  lcd.setBacklight(HIGH);
+
+  hallState = digitalRead(hallPin);
+  moatButtonState = digitalRead(moatButtonPin);
+  panicButtonState = digitalRead(trapDoorBtn);
+
+  // Alert responses
   int alert = myNode.alertReceived();
   if (alert != 0) {
     // in this demo, we'll just print out a message about it
     logAlert(myNodeName, myZone, alert);
     // here is where you would do the real work of processing this alert:
     if (alert == SmartCityNode::BLACK_FRIDAY || alert == SmartCityNode::FIRE) {
-      digitalWrite(ledPin, HIGH);
+      digitalWrite(13, HIGH);
       delay(2000);
-      digitalWrite(ledPin, LOW);
+      digitalWrite(13, LOW);
     } else {
-      digitalWrite(ledPin, LOW);
+      digitalWrite(13, LOW);
+    }
+    if (alert == SmartCityNode::FLOOD) {
+      openDrawBridge();
+    }
+    if (alert == (SmartCityNode::BURGLARY || SmartCityNode::ZOMBIE || SmartCityNode::HIPSTER_INVASION)) {
+      // open panic room door for x seconds, then close
+    }
+    if (alert == SmartCityNode::FIRE) {
+      // flash LEDs plus warning on lcd
     }
   }
-  
-  hallState = digitalRead(hallPin);
-  moatButtonState = digitalRead(moatButtonPin);
-  panicButtonState = digitalRead(trapDoorBtn);
+  // End alert responses
 
   myServo2.write(posServo2);
 
+// Servo Drawbridge controlled by button and hall effect sensor
   if (hallState == LOW || moatButtonState == HIGH) {
     Serial.println("Magnet detected");
     Serial.println("Rotation started");
@@ -116,7 +141,9 @@ void loop() {
     delay(5000);
   }
   delay(5);
+// End drawbridge code
 
+// servo panic room door controlled by button
   if (panicButtonState == HIGH & posServo2==0) {
       for (posServo2=0; posServo2 <= 89; posServo2=posServo2+1); {
         Serial.println(posServo2);
@@ -138,18 +165,43 @@ void loop() {
         panicButtonState = LOW;         
      }
   }
+// end panic room button code
 
+// Magnetic door sensor 
+  runTime = millis();
   if(digitalRead(magneticSwitchPin) == HIGH & magneticDirectionState == 0) {
     digitalWrite(ledPin, HIGH);
-    delay(5000);
-    magneticDirectionState = 1;
+    if (millis() >= (runTime + 5000)) {
+      magneticDirectionState = 1;
+    }
   }
+  runTime = millis();
   if (digitalRead(magneticSwitchPin) == HIGH & magneticDirectionState == 1){
     digitalWrite(ledPin, LOW);
-    delay(5000);
-    magneticDirectionState = 0;
+    if (millis() >= (runTime + 5000)) {
+      magneticDirectionState = 0;
+    }
   }
+// End magnetic door sensor 
+
 }
+void openDrawBridge() { // Opens then closes drawbridge
+  Serial.println("Magnet detected");
+  Serial.println("Rotation started");
+  myServo1.write(0);
+  delay(5000);
+  for (posServo1 = 0; posServo1 <= 90; posServo1 += 1) { // goes from closed degrees to open
+    // in steps of 1 degree
+    myServo1.write(posServo1);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  delay(5000);
+}
+
+void openPanicRoom() { // Opens then closes panic room door
+  
+}
+
 void logAlert (String myName, int zone, int alert) {
 
   // just blink the led and write a message out to the serial monitor

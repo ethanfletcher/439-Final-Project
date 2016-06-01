@@ -27,7 +27,7 @@ boolean myDebugging = true;
 Servo myServo1;  // create servo object to control drawbridge servo
 Servo myServo2; // servo object that controls panic room door
 
-int posServo1 = 0;    // variable to store the servo position
+int posServo1 = 90;    // variable to store the servo position
 int posServo2 = 90; // variable for servo controlling panic room door
 
 const int hallPin = 12; // Hall effect sensor
@@ -48,9 +48,9 @@ int magneticDirectionState = 0;
 int ledState = LOW;
 
 void setup() {
+  Serial.begin(9600);
   myServo1.attach(9);  // attaches the servo on pin 9 to the servo object
   myServo2.attach(10); // attaches panic room servo on pin 10
-  Serial.begin(9600);
   pinMode(hallPin, INPUT);
   pinMode(moatButtonPin, INPUT);
   pinMode(7, OUTPUT);
@@ -66,6 +66,9 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print("Trap House");
   lcd.setBacklight(HIGH);
+
+  myServo2.write(posServo2);
+  myServo1.write(posServo1);
 
   Serial.println("\n\n*** Starting SmartCityNode demo");
 
@@ -102,7 +105,9 @@ void loop() {
   moatButtonState = digitalRead(moatButtonPin);
   panicButtonState = digitalRead(trapDoorBtn);
 
-
+  Serial.println("Hall State = ");
+  Serial.print(hallState);
+  
   // Alert responses
   int alert = myNode.alertReceived();
   if (alert != 0) {
@@ -117,17 +122,17 @@ void loop() {
       digitalWrite(13, LOW);
     }
     if (alert == SmartCityNode::FLOOD) {
-      lcd.setCursor(0, 1);
+      lcd.setCursor(0, 0);
       lcd.print("Flood Detected!");
       openDrawBridge();
     }
     if (alert == (SmartCityNode::BURGLARY || SmartCityNode::ZOMBIE || SmartCityNode::HIPSTER_INVASION)) {
-      lcd.setCursor(0, 1);
+      lcd.setCursor(0, 0);
       lcd.print(alert + " Detected!");
       openPanicRoom();
     }
     if (alert == SmartCityNode::FIRE) {
-      lcd.setCursor(0, 1);
+      lcd.setCursor(0, 0);
       lcd.print("Fire Detected!");
       // flash LEDs plus warning on lcd
     }
@@ -135,24 +140,31 @@ void loop() {
   // End alert responses
 
   myServo2.write(posServo2);
-
+  myServo1.write(posServo1);
+  
 // Servo Drawbridge controlled by button and hall effect sensor
-  if (hallState == LOW || moatButtonState == HIGH) {
-   // flashLED();
+//  if (hallState == LOW || moatButtonState == HIGH) {
+    //if (hallState == 1 || moatButtonState == HIGH) {
+    if (moatButtonState == HIGH) {
+    flashLED();
     lcd.clear();
     lcd.setCursor(0, 1);
-    lcd.print("Opening Drawbridge");
+    lcd.print("Drawbridge");
     Serial.println(hallState);
     Serial.println("Magnet detected");
     Serial.println("Rotation started");
-    myServo1.write(0);
-    delay(5000);
-    for (posServo1 = 0; posServo1 <= 90; posServo1 += 1) { // goes from closed degrees to open
+  //  myServo1.write(0);
+   // delay(2000);
+   // for (posServo1 = 0; posServo1 <= 90; posServo1 += 1) { // goes from closed degrees to open
+    for (posServo1 = 90; posServo1 >= 0; posServo1 -= 1) { // goes from closed degrees to open
       // in steps of 1 degree
       myServo1.write(posServo1);              // tell servo to go to position in variable 'pos'
       delay(15);                       // waits 15ms for the servo to reach the position
+      if (posServo1 == 89) {
+        delay(3000);
+      }
     }
-    delay(5000);
+    //delay(5000);
   }
   delay(5);
 // End drawbridge code
@@ -161,7 +173,7 @@ void loop() {
   if (panicButtonState == HIGH & posServo2==0) {
       lcd.clear();
       lcd.setCursor(0, 1);
-      lcd.print("Opening Panic Room");
+      lcd.print("Panic Room");
       for (posServo2=0; posServo2 <= 89; posServo2=posServo2+1); {
         Serial.println(posServo2);
         myServo2.write(posServo2); 
@@ -206,23 +218,28 @@ void loop() {
 void openDrawBridge() { // Opens then closes drawbridge
   lcd.clear();
   lcd.setCursor(0, 1);
-  lcd.print("Opening Drawbridge");
+  lcd.print("Drawbridge");
   Serial.println("Magnet detected");
   Serial.println("Rotation started");
   myServo1.write(0);
   delay(5000);
   for (posServo1 = 0; posServo1 <= 90; posServo1 += 1) { // goes from closed degrees to open
+  //for (posServo1 = 90; posServo1 <= 0; posServo1 -= 1) { // goes from closed degrees to open
     // in steps of 1 degree
     myServo1.write(posServo1);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
+    if (posServo1 == 89) {
+      delay(3000);
+    }
   }
-  delay(5000);
+  lcd.clear();
+  delay(2000);
 }
 
 void openPanicRoom() { // Opens then closes panic room door
   lcd.clear();
   lcd.setCursor(0, 1);
-  lcd.print("Opening Panic Room");
+  lcd.print("Panic Room");
   for (posServo2=0; posServo2 <= 89; posServo2=posServo2+1); {
     Serial.println(posServo2);
     myServo2.write(posServo2); 
@@ -245,33 +262,16 @@ void openPanicRoom() { // Opens then closes panic room door
 void flashLED() {
   Serial.println("FLASHING LEDS!");
   lcd.clear();
-  lcd.setCursor(0, 2);
+  lcd.setCursor(0, 0);
   lcd.print("Flashing LEDs");
-  int timer = millis();
   digitalWrite(7, HIGH);
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, LOW);
-  }
-  timer = millis();
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, HIGH);
-  }
-  timer = millis();
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, LOW);
-  } 
+  delay(250);
+  digitalWrite(7, LOW);
+  delay(250);
   digitalWrite(7, HIGH);
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, LOW);
-  }
-  timer = millis();
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, HIGH);
-  }
-  timer = millis();
-  if (millis() == (timer + 250)) {
-    digitalWrite(7, LOW);
-  } 
+  delay(250);
+  digitalWrite(7, LOW);
+  delay(250);  
 }
 
 void logAlert (String myName, int zone, int alert) {

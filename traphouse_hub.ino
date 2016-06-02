@@ -144,8 +144,8 @@ void loop() {
   
 // Servo Drawbridge controlled by button and hall effect sensor
 //  if (hallState == LOW || moatButtonState == HIGH) {
-    //if (hallState == 1 || moatButtonState == HIGH) {
-    if (moatButtonState == HIGH) {
+    if ((hallState == 1 || moatButtonState == HIGH)) {
+    //if (moatButtonState == HIGH) {
     flashLED();
     lcd.clear();
     lcd.setCursor(0, 1);
@@ -200,7 +200,6 @@ void loop() {
   if(digitalRead(magneticSwitchPin) == HIGH & magneticDirectionState == 0) {
     ledState = HIGH;
     digitalWrite(ledPin, HIGH);
-    flashLED();
   }
   if (digitalRead(magneticSwitchPin) == LOW & ledState == HIGH) {
     magneticDirectionState = 1;
